@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>萤石云监控墙</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="pulse"></span>
+    <span class="brand-name">萤石云监控墙</span>
+    <span class="ver" id="ver"></span>
+  </div>
+
+  <div class="statusline">
+    <span class="chip" id="credChip">凭证未配置</span>
+    <span class="chip ghost" id="clock">--:--:--</span>
+  </div>
+
+  <div class="actions">
+    <select id="layoutSel" class="btn select" title="画面布局">
+      <option value="1">单画面</option>
+      <option value="4" selected>2 × 2</option>
+      <option value="9">3 × 3</option>
+      <option value="16">4 × 4</option>
+    </select>
+    <button class="btn" id="btnPlayAll">全部播放</button>
+    <button class="btn" id="btnRetryAll">全部重试</button>
+    <button class="btn" id="btnStopAll">全部停止</button>
+    <button class="btn primary" id="btnAdd">＋ 添加监控</button>
+    <button class="btn accent" id="btnReport">生成报告</button>
+  </div>
+</header>
+
+<main id="main">
+  <section class="grid" id="grid" data-layout="4"></section>
+
+  <div class="empty" id="empty">
+    <div class="empty-inner">
+      <div class="empty-icon">◉</div>
+      <h2>尚未添加监控通道</h2>
+      <p>添加方式：<b>批量粘贴</b>「序列号:通道:名称」／<b>从设备列表</b>勾选／<b>直接粘贴 m3u8 地址</b>。</p>
+      <div class="empty-actions">
+        <button class="btn primary" id="btnAdd2">＋ 添加监控</button>
+        <button class="btn" id="btnDemo">载入演示通道</button>
+      </div>
+      <p class="hint">演示通道用于验证界面与报告流程，不含真实码流，其中含一个故意失败的通道。</p>
+    </div>
+  </div>
+</main>
+
+<!-- ==================== 报告抽屉 ==================== -->
+<aside class="drawer" id="drawer">
+  <div class="drawer-head">
+    <h3>访问失败总结报告</h3>
+    <button class="icon-btn" id="btnCloseDrawer" title="关闭">✕</button>
+  </div>
+
+  <div class="drawer-body" id="reportBody">
+    <p class="muted">尚无数据。</p>
+  </div>
+
+  <div class="drawer-foot">
+    <button class="btn" id="btnRecheck">重新检测全部</button>
+    <button class="btn" id="btnSaveReport">保存到 reports/</button>
+    <button class="btn" id="btnExportCsv">导出 CSV</button>
+    <button class="btn" id="btnExportMd">导出 Markdown</button>
+  </div>
+</aside>
+<div class="scrim" id="scrim"></div>
+
+<!-- ==================== 添加监控 / 设置 弹窗 ==================== -->
+<div class="modal" id="modal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div class="tabs">
+        <button class="tab active" data-tab="batch">批量粘贴</button>
+        <button class="tab" data-tab="devices">从设备列表</button>
+        <button class="tab" data-tab="cred">设置凭证</button>
+      </div>
+      <button class="icon-btn" id="btnCloseModal">✕</button>
+    </div>
+
+    <!-- 批量粘贴 -->
+    <div class="modal-body tab-pane active" data-pane="batch">
+      <p class="label">每行一条，支持三种格式：</p>
+      <pre class="fmt">序列号:通道:名称        例  GD0084509:1:大门口
+序列号:通道             例  GD0084509:2
+https://.../*.m3u8?expire=...   直链，粘贴完整链接即可
+                        例  https://open.ys7.com/v3/openlive/GD0084509_1_1.m3u8?expire=...&id=...&t=...</pre>
+      <textarea id="batchInput" rows="9" placeholder="GD0084509:1:大门口&#10;GD0084509:2:仓库&#10;https://open.ys7.com/v3/openlive/GD0084509_1_1.m3u8?expire=1805358646&id=956228527886172160&t=..."></textarea>
+      <div class="row">
+        <label class="field">
+          <span>默认协议</span>
+          <select id="protoSel">
+            <option value="2" selected>HLS（浏览器原生支持，推荐）</option>
+            <option value="1">ezopen（需 EzUIKit）</option>
+            <option value="3">RTMP（浏览器不支持）</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>清晰度</span>
+          <select id="qualitySel">
+            <option value="1">高清</option>
+            <option value="2" selected>流畅</option>
+          </select>
+        </label>
+      </div>
+      <p class="hint">提示：一个设备可能包含多个通道；通道号从 1 开始。添加后默认自动播放。</p>
+    </div>
+
+    <!-- 设备列表 -->
+    <div class="modal-body tab-pane" data-pane="devices">
+      <div class="row tight">
+        <button class="btn" id="btnLoadDevices">读取设备列表</button>
+        <button class="btn" id="btnLoadToken">检查凭证 / 获取 Token</button>
+      </div>
+      <div id="deviceList" class="device-list">
+        <p class="muted">点击「读取设备列表」从萤石开放平台拉取当前账号下的设备。</p>
+      </div>
+      <div id="cameraList" class="device-list"></div>
+    </div>
+
+    <!-- 凭证 -->
+    <div class="modal-body tab-pane" data-pane="cred">
+      <p class="label">在萤石开放平台控制台创建应用后获得 AppKey / AppSecret。凭证仅保存在本机 <code>config.json</code>，不会上传。</p>
+      <label class="field block">
+        <span>AppKey</span>
+        <input id="appKey" type="text" autocomplete="off" placeholder="例如 3f8a1c2d4e5b6a7c8d9e0f1a2b3c4d5e" />
+      </label>
+      <label class="field block">
+        <span>AppSecret</span>
+        <input id="appSecret" type="password" autocomplete="off" placeholder="应用密钥" />
+      </label>
+      <label class="field block">
+        <span>开放平台地址（一般无需修改）</span>
+        <input id="apiBase" type="text" placeholder="https://open.ys7.com" />
+      </label>
+      <div class="row tight">
+        <button class="btn primary" id="btnSaveCred">保存并获取 Token</button>
+        <button class="btn" id="btnClearToken">清除本地 Token</button>
+      </div>
+      <p class="hint" id="credResult"></p>
+    </div>
+
+    <div class="modal-foot">
+      <label class="checkbox"><input type="checkbox" id="autoPlayChk" checked /> 添加后自动播放</label>
+      <div class="grow"></div>
+      <button class="btn" id="btnCancel">取消</button>
+      <button class="btn primary" id="btnConfirmBatch">确认添加</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

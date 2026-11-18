@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>独立窗口 · 萤石云监控</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: #05070a; color: #dbe6f2;
+    font: 13px/1.6 "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .bar {
+    flex: 0 0 auto; display: flex; align-items: center; gap: 10px;
+    padding: 7px 12px; background: #101821; border-bottom: 1px solid #1b2733;
+  }
+  .title { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sub { font-family: ui-monospace, Consolas, monospace; font-size: 11px; color: #5f7488; }
+  .grow { flex: 1; }
+  .badge {
+    font-size: 11px; padding: 1px 8px; border-radius: 999px;
+    border: 1px solid #22303f; background: #0d151d; color: #8fa3b8; white-space: nowrap;
+  }
+  .badge.ok { color: #91f0b0; border-color: #1e5133; background: #0b1d14; }
+  .badge.bad { color: #ffb0b0; border-color: #4d2020; background: #1b1010; }
+  .badge.warn { color: #ffd9a0; border-color: #4d3a1c; background: #1b1610; }
+  button {
+    font: inherit; font-size: 12px; padding: 3px 10px; border-radius: 6px;
+    border: 1px solid #22303f; background: #16202b; color: #dbe6f2; cursor: pointer;
+  }
+  button:hover { background: #1d2a37; }
+  .stage {
+    position: relative; flex: 1 1 auto; min-height: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  video, canvas { width: 100%; height: 100%; object-fit: contain; background: #05070a; display: block; }
+  .overlay {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 8px; text-align: center; padding: 18px;
+  }
+  .overlay.err { background: linear-gradient(180deg, rgba(28,10,10,.94), rgba(10,4,4,.97)); }
+  .code {
+    font-family: ui-monospace, Consolas, monospace; font-size: 11px;
+    color: #ff9b9b; border: 1px solid #582626; background: #230f0f;
+    padding: 1px 8px; border-radius: 999px;
+  }
+  .msg { font-size: 13.5px; font-weight: 600; color: #ffd7d7; }
+  .advice { font-size: 12px; color: #b99898; max-width: 460px; line-height: 1.6; }
+  .spin {
+    width: 22px; height: 22px; border: 2px solid #1e2c3a; border-top-color: #22d3ee;
+    border-radius: 50%; animation: sp .8s linear infinite;
+  }
+  @keyframes sp { to { transform: rotate(360deg); } }
+  .foot {
+    flex: 0 0 auto; display: flex; gap: 12px; align-items: center;
+    padding: 5px 12px; background: #0b1118; border-top: 1px solid #1b2733;
+    font-size: 11px; color: #5f7488; font-variant-numeric: tabular-nums;
+  }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <span class="badge" id="badge">准备中</span>
+  <span class="title" id="title">—</span>
+  <span class="sub" id="sub"></span>
+  <span class="grow"></span>
+  <button id="btnMute">声音</button>
+  <button id="btnRetry">重连</button>
+</div>
+
+<div class="stage" id="stage">
+  <video id="video" playsinline muted autoplay></video>
+  <div class="overlay" id="overlay"><div class="spin"></div><div class="msg">正在连接…</div></div>
+</div>
+
+<div class="foot">
+  <span id="footL">—</span>
+  <span class="grow"></span>
+  <span id="footR"></span>
+</div>
+
+<script>
+'use strict';
+const q = new URLSearchParams(location.search);
+const cfg = {
+  name: q.get('name') || '未命名通道',
+  serial: q.get('serial') || '',
+  channel: parseInt(q.get('channel') || '1', 10) || 1,
+  protocol: parseInt(q.get('protocol') || '2', 10) || 2,
+  quality: parseInt(q.get('quality') || '2', 10) || 2,
+  directUrl: q.get('url') || '',
+  demo: q.get('demo') || ''
+};
+
+const PROTO = { 1: 'ezopen', 2: 'HLS', 3: 'RTMP' };
+const video = document.getElementById('video');
+const overlay = document.getElementById('overlay');
+const badge = document.getElementById('badge');
+const footL = document.getElementById('footL');
+const footR = document.getElementById('footR');
+
+document.getElementById('title').textContent = cfg.name;
+document.getElementById('sub').textContent =
+  (cfg.directUrl ? 'DIRECT' : cfg.serial + ':' + cfg.channel) + ' · ' + (PROTO[cfg.protocol] || 'HLS');
+
+let hls = null;
+let raf = null;
+let attempts = 0;
+
+function setBadge(text, cls) { badge.textContent = text; badge.className = 'badge ' + cls; }
+/* 错误文案包含接口返回内容，必须转义后才能拼进 innerHTML */
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function showLoading(text) {
+  overlay.className = 'overlay';
+  overlay.style.display = 'flex';
+  overlay.innerHTML = '<div class="spin"></div><div class="msg">' + esc(text) + '</div>';
+}
+function showError(code, msg, advice) {
+  overlay.className = 'overlay err';
+  overlay.style.display = 'flex';
+  overlay.innerHTML =
+    '<span class="code">' + esc(code) + '</span>' +
+    '<div class="msg">' + esc(msg) + '</div>' +
+    '<div class="advice">' + esc(advice || '') + '</div>';
+  setBadge('失败 ' + code, 'bad');
+}
+function hideOverlay() { overlay.style.display = 'none'; }
+
+const CODE_HINT = {
+  'NO_CRED': '尚未配置 AppKey / AppSecret，请回到主界面「添加监控 → 设置凭证」。',
+  '20007': '设备不在线：检查供电与网络，确认在萤石云客户端显示在线。',
+  '20002': 'Token 过期：回到主界面重新获取 Token。',
+  '20032': '设备不支持该协议：改用 ezopen，或清晰度降为「流畅」。',
+  'HLS_FATAL': '播放失败：地址可能已过期，点击「重连」重新获取。',
+  'NO_PLUGIN': 'hls.js 加载失败：web/vendor/hls.min.js 缺失，且无法访问 CDN。',
+  'TIMEOUT': '等待超时：地址有效但码流未就绪，请重试。'
+};
+
+function destroy() {
+  if (hls) { try { hls.destroy(); } catch (e) {} hls = null; }
+  if (raf) { cancelAnimationFrame(raf); raf = null; }
+  document.querySelectorAll('canvas').forEach(n => n.remove());
+  video.onplaying = null;
+  video.onerror = null;
+  video.removeAttribute('src');
+  try { video.load(); } catch (e) {}
+  video.style.display = '';
+}
+
+function loadScript(src) {
+  return new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = src; s.async = true; s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
+}
+async function ensureHls() {
+  if (window.Hls && window.Hls.isSupported()) return true;
+  // 本地优先，CDN 兜底
+  const cdns = [
+    'vendor/hls.min.js',
+    'https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js',
+    'https://unpkg.com/hls.js@1.5.17/dist/hls.min.js',
+    'https://cdn.bootcdn.net/ajax/libs/hls.js/1.5.17/hls.min.js'
+  ];
+  for (const u of cdns) {
+    try { await loadScript(u); if (window.Hls) return true; } catch (e) {}
+  }
+  return false;
+}
+
+function demoPlay() {
+  const canvas = document.createElement('canvas');
+  canvas.style.position = 'absolute';
+  canvas.style.inset = '0';
+  document.getElementById('stage').appendChild(canvas);
+  video.style.display = 'none';
+  const ctx = canvas.getContext('2d');
+  const t0 = performance.now();
+  const draw = () => {
+    const w = canvas.width = canvas.clientWidth || 640;
+    const h = canvas.height = canvas.clientHeight || 360;
+    const t = (performance.now() - t0) / 1000;
+    ctx.fillStyle = '#06090d'; ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = '#12202b';
+    for (let x = 0; x < w; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
+    for (let y = 0; y < h; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+    const yy = (t * 60) % h;
+    const g = ctx.createLinearGradient(0, yy - 26, 0, yy + 26);
+    g.addColorStop(0, 'rgba(34,211,238,0)');
+    g.addColorStop(.5, 'rgba(34,211,238,.22)');
+    g.addColorStop(1, 'rgba(34,211,238,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, yy - 26, w, 52);
+    ctx.fillStyle = '#7dd3e8';
+    ctx.font = '600 13px "Microsoft YaHei", sans-serif';
+    ctx.fillText(cfg.name, 14, 24);
+    ctx.fillStyle = '#3f5a6d';
+    ctx.font = '12px ui-monospace, Consolas, monospace';
+    ctx.fillText('DEMO SOURCE · NO REAL STREAM', 14, h - 30);
+    ctx.fillText(new Date().toLocaleString() + ' · ' + t.toFixed(1) + 's', 14, h - 12);
+    raf = requestAnimationFrame(draw);
+  };
+  draw();
+  hideOverlay();
+  setBadge('演示中', 'warn');
+  footL.textContent = '演示源 · 无真实码流';
+  footR.textContent = '';
+}
+
+async function start() {
+  destroy();
+  attempts += 1;
+  showLoading('正在连接…');
+  setBadge('连接中', 'warn');
+  footL.textContent = '第 ' + attempts + ' 次尝试';
+  footR.textContent = '';
+
+  if (cfg.demo === 'fail') {
+    setTimeout(() => {
+      showError('DEMO_FAIL', '演示通道：模拟设备离线', '该通道为演示用，用于展示独立窗口的失败样式。');
+    }, 600);
+    return;
+  }
+  if (cfg.demo === 'stream') { demoPlay(); return; }
+
+  let url = cfg.directUrl;
+  const t0 = performance.now();
+
+  if (!url) {
+    try {
+      const res = await fetch('/api/live', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          serial: cfg.serial, channel: cfg.channel,
+          protocol: cfg.protocol, quality: cfg.quality
+        })
+      }).then(r => r.json());
+
+      if (!res.ok) {
+        const code = res.error.code;
+        showError(code, res.error.message, CODE_HINT[code] || '');
+        return;
+      }
+      url = res.data.url;
+      footR.textContent = '取址 ' + Math.round(performance.now() - t0) + ' ms';
+    } catch (err) {
+      showError('NETERR', '本地服务调用失败', String(err));
+      return;
+    }
+  }
+
+  if (cfg.protocol === 3 || /^rtmp:\/\//i.test(url)) {
+    showError('UNSUPPORTED', 'RTMP 无法在浏览器播放', '请改用 HLS 协议。');
+    return;
+  }
+  if (cfg.protocol === 1) {
+    showError('UNSUPPORTED', '本工具未启用 ezopen 播放内核', '请改用 HLS 协议。');
+    return;
+  }
+
+  showLoading('正在缓冲码流…');
+  video.onplaying = () => { hideOverlay(); setBadge('在线', 'ok'); };
+
+  // 优先 hls.js（错误可控）；原生 HLS 仅作兜底。
+  // Chrome 的 canPlayType 返回 "maybe" 但实际不支持 HLS，顺序不能反。
+  const ok = await ensureHls();
+  if (!ok) {
+    const native = video.canPlayType('application/vnd.apple.mpegurl');
+    if (native) {
+      video.src = url;
+      video.play().catch(() => {});
+      return;
+    }
+    showError('NO_PLUGIN', 'hls.js 加载失败', '请确认 web/vendor/hls.min.js 存在，或本机可访问 CDN。');
+    return;
+  }
+
+  hls = new window.Hls({
+    lowLatencyMode: false,
+    manifestLoadingTimeOut: 12000,
+    fragLoadingTimeOut: 25000
+  });
+  hls.on(window.Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => {}));
+  hls.on(window.Hls.Events.ERROR, (_e, data) => {
+    if (!data || !data.fatal) return;
+    showError('HLS_FATAL', data.details || 'HLS 播放失败', CODE_HINT['HLS_FATAL']);
+  });
+  hls.loadSource(url);
+  hls.attachMedia(video);
+}
+
+document.getElementById('btnRetry').addEventListener('click', start);
+document.getElementById('btnMute').addEventListener('click', (e) => {
+  video.muted = !video.muted;
+  e.target.textContent = video.muted ? '声音' : '静音';
+  if (!video.muted) video.play().catch(() => {});
+});
+
+start();
+</script>
+</body>
+</html>

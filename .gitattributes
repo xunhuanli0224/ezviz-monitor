@@ -1,0 +1,24 @@
+* text=auto
+
+# Shell 脚本必须保持 LF，否则在 macOS / Linux 上无法执行（bad interpreter）
+*.sh text eol=lf
+# Windows 批处理保持 CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# 源码统一 LF
+*.py text eol=lf
+*.js text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+
+# 第三方压缩库按二进制处理，避免换行符改写导致内容损坏
+web/vendor/*.js -text
+
+# 二进制资源
+*.exe binary
+*.zip binary
+*.png binary
+*.ico binary
