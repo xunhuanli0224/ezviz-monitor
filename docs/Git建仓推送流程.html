@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>为项目创建 GitHub 仓库并推送 · 流程说明</title>
+<style>
+  :root {
+    --bg: #f5f7fa;
+    --card: #ffffff;
+    --line: #e2e8f0;
+    --line-soft: #eef2f7;
+    --text: #1f2937;
+    --text-2: #475569;
+    --text-3: #7c8798;
+    --accent: #2563eb;
+    --accent-soft: #eff4ff;
+    --ok: #15803d;
+    --ok-soft: #eefaf1;
+    --warn: #b45309;
+    --warn-soft: #fff8eb;
+    --bad: #b91c1c;
+    --bad-soft: #fef2f2;
+    --code-bg: #f8fafc;
+    --mono: ui-monospace, "Cascadia Code", Consolas, "Courier New", monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 40px 24px 72px;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.75 -apple-system, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1060px; margin: 0 auto; }
+
+  header.top {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 28px 32px;
+    margin-bottom: 22px;
+  }
+  header.top h1 {
+    margin: 0 0 10px;
+    font-size: 25px;
+    letter-spacing: -0.3px;
+  }
+  header.top .sub { color: var(--text-2); font-size: 14px; margin: 0 0 16px; }
+  .meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px 18px;
+    font-size: 13px;
+    color: var(--text-2);
+  }
+  .meta-grid b { color: var(--text); font-weight: 600; }
+
+  section.card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 26px 32px 30px;
+    margin-bottom: 20px;
+  }
+  h2 {
+    font-size: 18px;
+    margin: 0 0 6px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line-soft);
+    letter-spacing: -0.2px;
+  }
+  h2 .idx {
+    display: inline-block;
+    min-width: 26px;
+    height: 26px;
+    line-height: 26px;
+    text-align: center;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-radius: 7px;
+    font-size: 13px;
+    margin-right: 10px;
+    vertical-align: 1px;
+  }
+  h3 { font-size: 15px; margin: 26px 0 10px; color: var(--text); }
+  h3:first-of-type { margin-top: 18px; }
+  p { margin: 10px 0; color: var(--text-2); }
+  p.lead { color: var(--text-2); font-size: 14px; }
+  ul, ol { color: var(--text-2); padding-left: 22px; margin: 10px 0; }
+  li { margin: 5px 0; }
+  strong { color: var(--text); }
+
+  code {
+    font-family: var(--mono);
+    font-size: 13px;
+    background: #eef2f7;
+    border-radius: 4px;
+    padding: 1px 5px;
+    color: #0f172a;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    margin: 12px 0;
+    line-height: 1.65;
+  }
+  pre code { background: none; padding: 0; font-size: 12.5px; color: #1e293b; }
+  pre .cmt { color: #8695a8; }
+  pre .pr { color: #0e7490; font-weight: 600; }
+  pre .out { color: #64748b; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 13.5px;
+  }
+  th, td {
+    border: 1px solid var(--line);
+    padding: 9px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: #f3f6fa; font-weight: 600; color: var(--text); white-space: nowrap; }
+  td { color: var(--text-2); }
+  tbody tr:nth-child(even) td { background: #fbfcfe; }
+  td code { white-space: nowrap; }
+
+  .steps { counter-reset: st; list-style: none; padding: 0; margin: 18px 0 0; }
+  .steps > li {
+    position: relative;
+    padding: 0 0 4px 46px;
+    margin: 0 0 22px;
+    counter-increment: st;
+  }
+  .steps > li::before {
+    content: counter(st);
+    position: absolute;
+    left: 0; top: 0;
+    width: 30px; height: 30px;
+    line-height: 30px;
+    text-align: center;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .steps > li::after {
+    content: "";
+    position: absolute;
+    left: 14.5px; top: 34px; bottom: -18px;
+    width: 1px;
+    background: var(--line);
+  }
+  .steps > li:last-child::after { display: none; }
+  .steps .t { font-weight: 600; color: var(--text); font-size: 14.5px; }
+  .steps .why { font-size: 13px; color: var(--text-3); margin: 2px 0 6px; }
+
+  .note, .warn, .ok {
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 14px 0;
+    font-size: 13.5px;
+    line-height: 1.7;
+  }
+  .note { background: var(--accent-soft); border-left: 3px solid var(--accent); color: #1e40af; }
+  .warn { background: var(--warn-soft); border-left: 3px solid #f59e0b; color: var(--warn); }
+  .ok { background: var(--ok-soft); border-left: 3px solid #22c55e; color: var(--ok); }
+  .bad { background: var(--bad-soft); border-left: 3px solid #ef4444; color: var(--bad); }
+  .note b, .warn b, .ok b, .bad b { color: inherit; }
+
+  .flow-box {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fbfcfe;
+    padding: 8px;
+    margin: 16px 0 6px;
+  }
+  .cap { font-size: 12.5px; color: var(--text-3); text-align: center; margin: 4px 0 0; }
+
+  .pill {
+    display: inline-block;
+    font-size: 11.5px;
+    padding: 1px 8px;
+    border-radius: 20px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    margin-left: 6px;
+    vertical-align: 1px;
+  }
+  .pill.gray { background: #f1f5f9; color: var(--text-2); }
+
+  footer { text-align: center; color: var(--text-3); font-size: 12.5px; margin-top: 26px; }
+
+  @media print {
+    body { background: #fff; padding: 0; }
+    section.card, header.top { border: none; box-shadow: none; page-break-inside: avoid; }
+    pre { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <h1>为项目创建 GitHub 仓库并推送</h1>
+    <p class="sub">本次操作的全流程复盘 + 自己动手时可照抄的步骤</p>
+    <div class="meta-grid">
+      <div><b>目标仓库</b><br>github.com/xunhuanli0224/ezviz-monitor</div>
+      <div><b>可见性 / 默认分支</b><br>Public / main</div>
+      <div><b>结果</b><br>13 个文件、4060 行，单次提交</div>
+      <div><b>环境</b><br>git 2.55.0 · gh 2.104.0 · Windows</div>
+    </div>
+  </header>
+
+  <section class="card">
+    <h2><span class="idx">§</span>一分钟版：完整命令序列</h2>
+    <p class="lead">如果你只想复制粘贴，用这一段。假设项目已有代码、GitHub 上还没有仓库。</p>
+
+<pre><code><span class="cmt"># 0. 装 GitHub CLI（只装一次，装完重开终端）</span>
+winget install --id GitHub.cli -e
+
+<span class="cmt"># 1. 登录（浏览器设备码授权，只需一次）</span>
+gh auth login --web --git-protocol ssh
+
+<span class="cmt"># 2. 进项目目录，初始化</span>
+cd 你的项目目录
+git init -b main
+git config user.name  "你的名字"
+git config user.email "你的邮箱"
+
+<span class="cmt"># 3. 先写忽略规则，再校验，最后才 add（顺序很重要）</span>
+printf 'config.json\nreports/\n__pycache__/\n*.pyc\ndist/\ndist_exe/\n' > .gitignore
+git check-ignore -v config.json
+
+<span class="cmt"># 4. 暂存并人工复核清单</span>
+git add -A
+git status --short
+
+<span class="cmt"># 5. 提交</span>
+git commit -m "feat: 初始提交"
+
+<span class="cmt"># 6. 建仓 + 加远端 + 推送，一条命令搞定</span>
+gh repo create 仓库名 --public --source=. --remote=origin --push</code></pre>
+
+    <div class="note">
+      <b>核心就三件事</b>：本地仓库先行（init → commit）、忽略规则先行（check-ignore 验证）、远端创建交给 gh。
+      顺序一旦颠倒，最容易出的问题就是把含密钥的文件推进公开仓库。
+    </div>
+  </section>
+
+  <section class="card">
+    <h2><span class="idx">1</span>流程图</h2>
+    <p class="lead">六个阶段，其中第 3 步和第 5 步是本次实际操作中真正遇到问题的地方。</p>
+
+    <div class="flow-box">
+      <svg viewBox="0 0 1000 500" width="100%" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Git 建仓推送六阶段流程">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#8393a8"></path>
+          </marker>
+        </defs>
+
+        <!-- ============ 第一行 ============ -->
+        <!-- 1 环境核对 -->
+        <rect x="40" y="50" width="280" height="84" rx="10" fill="#f2f7ff" stroke="#c7d9f7" stroke-width="1.2"></rect>
+        <circle cx="72" cy="82" r="14" fill="#2563eb"></circle>
+        <text x="72" y="87" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="700" font-family="Segoe UI, Microsoft YaHei, sans-serif">1</text>
+        <text x="98" y="80" fill="#1f2937" font-size="14.5" font-weight="700" font-family="Segoe UI, Microsoft YaHei, sans-serif">环境核对</text>
+        <text x="60" y="104" fill="#475569" font-size="12.5" font-family="Segoe UI, Microsoft YaHei, sans-serif">git 版本 · gh 是否安装</text>
+        <text x="60" y="122" fill="#475569" font-size="12.5" font-family="Segoe UI, Microsoft YaHei, sans-serif">SSH 密钥能否连上 GitHub</text>
+
+        <!-- 2 初始化 -->
+        <rect x="360" y="50" width="280" height="84" rx="10" fill="#f2f7ff" stroke="#c7d9f7" stroke-width="1.2"></rect>
+        <circle cx="392" cy="82" r="14" fill="#2563eb"></circle>
+        <text x="392" y="87" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="700" font-family="Segoe UI, Microsoft YaHei, sans-serif">2</text>
+        <text x="418" y="80" fill="#1f2937" font-size="14.5" font-weight="700" font-family="Segoe UI, Microsoft YaHei, sans-serif">初始化与身份</text>
+        <text x="380" y="104" fill="#475569" font-size="12.5" font-family="Segoe UI, Microsoft YaHei, sans-serif">git init -b main</text>
+        <text x="380" y="122" fill="#475569" font-size="12.5" font-family="Segoe UI, Microsoft YaHei, sans-serif">配置 user.name / user.email</text>
+
+        <!-- 3 忽略与暂存 -->
+        <rect x="680" y="50" width="280" height="84" rx="10" fill="#fff8eb" stroke="#f5c877" stroke-width="1.2"></rect>
+        <circle cx="712" cy="82" r="14" fill="#d97706"></circle>
+        <text x="712" y="87" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="700" font-family="Segoe UI, Microsoft YaHei, sans-serif">3</text>
+        <text x="738" y="80" fill="#1f2937" font-size="14.5" font-weight="700" font-family="Segoe UI, Microsoft YaHei, sans-serif">忽略规则与暂存</text>
+        <text x="700" y="104" fill="#92400e" font-size="12.5" font-family="Segoe UI, Microsoft YaHei, sans-serif">.gitignore + .gitattributes</text>
+        <text x="700" y="122" fill="#92400e" font-size="12.5" font-family="Segoe UI, Microsoft YaHei, sans-serif">check-ignore 验证后才 add</text>
+
+        <!-- 第一行箭头 -->
+        <line x1="320" y1="92" x2="354" y2="92" stroke="#8393a8" stroke-width="1.6" marker-end="url(#arrow)"></line>
+        <line x1="640" y1="92" x2="674" y2="92" stroke="#8393a8" stroke-width="1.6" marker-end="url(#arrow)"></line>
+
+        <!-- 提示：CRLF -->
+        <rect x="360" y="152" width="280" height="44" rx="8" fill="#fff8eb" stroke="none"></rect>
+        <text x="374" y="170" fill="#b45309" font-size="11.5" font-weight="600" font-family="Segoe UI, Microsoft YaHei, sans-serif">⚠ 漏了这一步：start.sh 克隆后变 CRLF</text>
+        <text x="374" y="187" fill="#b45309" font-size="11.5" font-family="Segoe UI, Microsoft YaHei, sans-serif">→ Mac/Linux 报 bad interpreter</text>
+
+        <!-- 3 → 4 竖向箭头 -->
+        <line x1="820" y1="134" x2="820" y2="199" stroke="#8393a8" stroke-width="1.6" marker-end="url(#arrow)"></line>
+
+        <!-- ============ 第二行（右到左） ============ -->
+        <!-- 4 提交 -->
+        <rect x="680" y="205" width="280" height="84" rx="10" fill="#f2f7ff" stroke="#c7d9f7" stroke-width="1.2"></rect>
+        <circle cx="712" cy="237" r="14" fill="#2563eb"></circle>
+        <text x="712" y="242" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="700" font-family="Segoe UI, Microsoft YaHei, sans-serif">4</text>
+        <text x="738" y="235" fill="#1f2937" font-size="14.5" font-weight="700" font-family="Segoe UI, Microsoft YaHei, sans-serif">提交</text>
+        <text x="700" y="259" fill="#475569" font-size="12.5" font-family="Segoe UI, Microsoft YaHei, sans-serif">git commit -m "…"</text>
+        <text x="700" y="277" fill="#475569" font-size="12.5" font-family="Segoe UI, Microsoft YaHei, sans-serif">13 files / 4060 insertions</text>
+
+        <!-- 5 建仓 -->
+        <rect x="360" y="205" width="280" height="84" rx="10" fill="#fff8eb" stroke="#f5c877" stroke-width="1.2"></rect>
+        <circle cx="392" cy="237" r="14" fill="#d97706"></circle>
+        <text x="392" y="242" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="700" font-family="Segoe UI, Microsoft YaHei, sans-serif">5</text>
+        <text x="418" y="235" fill="#1f2937" font-size="14.5" font-weight="700" font-family="Segoe UI, Microsoft YaHei, sans-serif">建仓与授权</text>
+        <text x="380" y="259" fill="#92400e" font-size="12.5" font-family="Segoe UI, Microsoft YaHei, sans-serif">gh auth login（设备码）</text>
+        <text x="380" y="277" fill="#92400e" font-size="12.5" font-family="Segoe UI, Microsoft YaHei, sans-serif">gh repo create --source --push</text>
+
+        <!-- 6 验证 -->
+        <rect x="40" y="205" width="280" height="84" rx="10" fill="#eefaf1" stroke="#a9e0bd" stroke-width="1.2"></rect>
+        <circle cx="72" cy="237" r="14" fill="#15803d"></circle>
+        <text x="72" y="242" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="700" font-family="Segoe UI, Microsoft YaHei, sans-serif">6</text>
+        <text x="98" y="235" fill="#1f2937" font-size="14.5" font-weight="700" font-family="Segoe UI, Microsoft YaHei, sans-serif">推送后验证</text>
+        <text x="60" y="259" fill="#166534" font-size="12.5" font-family="Segoe UI, Microsoft YaHei, sans-serif">列远端文件清单</text>
+        <text x="60" y="277" fill="#166534" font-size="12.5" font-family="Segoe UI, Microsoft YaHei, sans-serif">确认敏感文件未上传</text>
+
+        <!-- 第二行箭头（向左） -->
+        <line x1="680" y1="247" x2="646" y2="247" stroke="#8393a8" stroke-width="1.6" marker-end="url(#arrow)"></line>
+        <line x1="360" y1="247" x2="326" y2="247" stroke="#8393a8" stroke-width="1.6" marker-end="url(#arrow)"></line>
+
+        <!-- 提示：设备码 -->
+        <rect x="360" y="300" width="280" height="44" rx="8" fill="#f2f7ff" stroke="none"></rect>
+        <text x="374" y="318" fill="#1e40af" font-size="11.5" font-weight="600" font-family="Segoe UI, Microsoft YaHei, sans-serif">gh 在终端打印一次性代码，浏览器确认</text>
+        <text x="374" y="335" fill="#1e40af" font-size="11.5" font-family="Segoe UI, Microsoft YaHei, sans-serif">实测耗时 1 分 18 秒，token 存系统 keyring</text>
+
+        <!-- 6 → 7 -->
+        <line x1="180" y1="289" x2="180" y2="351" stroke="#8393a8" stroke-width="1.6" marker-end="url(#arrow)"></line>
+
+        <!-- ============ 第三行 ============ -->
+        <rect x="40" y="357" width="920" height="70" rx="10" fill="#f8fafc" stroke="#dbe3ed" stroke-width="1.2" stroke-dasharray="5 4"></rect>
+        <circle cx="72" cy="392" r="14" fill="#64748b"></circle>
+        <text x="72" y="397" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="700" font-family="Segoe UI, Microsoft YaHei, sans-serif">7</text>
+        <text x="98" y="390" fill="#1f2937" font-size="14.5" font-weight="700" font-family="Segoe UI, Microsoft YaHei, sans-serif">收尾（可选）</text>
+        <text x="98" y="412" fill="#475569" font-size="12.5" font-family="Segoe UI, Microsoft YaHei, sans-serif">补充仓库描述 · 添加 topics 标签 · 确认工作区干净（git status 无输出）</text>
+      </svg>
+    </div>
+    <p class="cap">橙色两步是本次实际操作中出问题或需要额外授权的地方，其余步骤是一次通过的常规动作。</p>
+  </section>
+
+  <section class="card">
+    <h2><span class="idx">2</span>六个阶段逐条拆解</h2>
+    <p class="lead">每步都给出：为什么做、敲什么、实际输出长什么样、出错了往哪看。</p>
+
+    <ol class="steps">
+      <li>
+        <div class="t">环境核对</div>
+        <div class="why">先确认工具链齐不齐，避免走到一半才发现缺东西</div>
+<pre><code><span class="pr">$</span> git --version
+<span class="out">git version 2.55.0.windows.3</span>
+
+<span class="pr">$</span> gh --version
+<span class="out">gh: command not found        ← 未安装，需要装</span>
+
+<span class="pr">$</span> ssh -T git@github.com
+<span class="out">Hi xunhuanli0224! You've successfully authenticated, but GitHub
+does not provide shell access.          ← SSH 通道本来就是通的</span></code></pre>
+        <p>这一步的结论很关键：<strong>SSH 已通，只缺创建仓库所需的 API 授权</strong>。推送（push）走 SSH，建仓走 API，是两条不同的通道，别混为一谈。</p>
+      </li>
+
+      <li>
+        <div class="t">初始化与身份</div>
+        <div class="why">决定默认分支名，并让提交记录显示正确的作者</div>
+<pre><code><span class="pr">$</span> git init -b main
+<span class="out">Initialized empty Git repository in D:/…/ezviz_monitor/.git/</span>
+
+<span class="pr">$</span> git config user.name  "xunhuanli0224"   <span class="cmt"># 只对本仓库生效</span>
+<span class="pr">$</span> git config user.email "xunhuanli0224@163.com"</code></pre>
+        <div class="warn">
+          <b>为什么用 <code>-b main</code></b>：git 2.28 起支持指定初始分支名。不写的话，取决于 <code>init.defaultBranch</code> 配置，
+          老环境会得到 <code>master</code>，与 GitHub 默认的 <code>main</code> 不一致，后续要额外改名。
+        </div>
+        <div class="warn">
+          <b>为什么要单独配身份</b>：本机全局 <code>user.name</code> 是占位符「homing你的名字」，直接提交会在 GitHub 上显示成这个名字。
+          这里用 <code>git config</code>（不带 <code>--global</code>）只改当前仓库，不动你的全局配置。
+        </div>
+      </li>
+
+      <li>
+        <div class="t">忽略规则与暂存（最容易出事的一步）</div>
+        <div class="why">确保密钥、二进制、历史报告不会进仓库</div>
+<pre><code><span class="cmt"># ① 先写忽略规则</span>
+<span class="pr">$</span> cat .gitignore
+<span class="out">config.json      ← 含 AppSecret</span>
+<span class="out">reports/         ← 本机历史报告</span>
+<span class="out">__pycache__/  *.pyc  dist/  dist_exe/  build/  *.spec</span>
+
+<span class="cmt"># ② 验证规则真的生效（不要只靠眼睛看文件内容）</span>
+<span class="pr">$</span> git check-ignore -v config.json reports dist dist_exe
+<span class="out">.gitignore:1:config.json      config.json
+.gitignore:2:reports/         reports
+.gitignore:5:dist/            dist
+.gitignore:6:dist_exe/        dist_exe</span>
+
+<span class="cmt"># ③ 再暂存，并人工复核清单</span>
+<span class="pr">$</span> git add -A
+<span class="pr">$</span> git status --short
+<span class="out">A  .gitignore
+A  README.md
+A  server.py
+A  start.sh
+A  web/app.js
+…（共 12 个文件，没有 config.json）</span></code></pre>
+
+        <h3>这里踩到的坑：换行符</h3>
+        <p><code>git add</code> 时出现一堆警告：</p>
+<pre><code><span class="out">warning: in the working copy of 'start.sh', LF will be replaced by CRLF
+the next time Git touches it</span></code></pre>
+        <p>含义是：Windows 上 <code>core.autocrlf</code> 默认开启，<strong>别人克隆时 <code>start.sh</code> 会变成 CRLF 换行</strong>，
+        在 macOS / Linux 上执行会直接报 <code>/bin/bash^M: bad interpreter</code>。补一个 <code>.gitattributes</code> 解决，然后重新归一：</p>
+<pre><code><span class="cmt"># .gitattributes</span>
+* text=auto
+*.sh  text eol=lf
+*.bat text eol=crlf
+web/vendor/*.js -text      <span class="cmt"># 压缩库按二进制处理，别改写</span>
+
+<span class="pr">$</span> git add .gitattributes
+<span class="pr">$</span> git add --renormalize .        <span class="cmt"># 按新规则重新计算换行</span>
+
+<span class="cmt"># 验证存档里到底是 LF 还是 CRLF</span>
+<span class="pr">$</span> git show :start.sh | grep -q $'\r' &amp;&amp; echo CRLF || echo LF
+<span class="out">LF                                ← 正确</span></code></pre>
+        <div class="note">
+          <b>为什么要 <code>git add --renormalize</code></b>：<code>.gitattributes</code> 只影响后续操作，已经暂存的内容不会自动按新规则重算。
+        </div>
+      </li>
+
+      <li>
+        <div class="t">提交</div>
+        <div class="why">本地形成第一个可推送的快照</div>
+<pre><code><span class="pr">$</span> git commit -F - &lt;&lt;'EOF'
+feat: 萤石云多路监控墙（本地代理 + HLS 多开播放 + 失败报告）
+
+浏览器无法直连萤石开放平台（无 CORS、会暴露 AppSecret）…
+EOF
+<span class="out"> 13 files changed, 4060 insertions(+)</span></code></pre>
+        <p>用 <code>-F -</code> 从标准输入读多行提交信息，比堆一串 <code>-m</code> 清爽。<strong>提交信息建议写「为什么这么做」，而不是「改了哪些文件」</strong>——前者三个月后还有价值。</p>
+      </li>
+
+      <li>
+        <div class="t">建仓与授权</div>
+        <div class="why">这一步必须有 API 凭证，SSH 密钥不能用来建仓库</div>
+        <p>先装工具并登录：</p>
+<pre><code><span class="pr">$</span> winget install --id GitHub.cli -e
+<span class="out">已成功安装  gh 2.104.0</span>
+
+<span class="pr">$</span> gh auth login --web --git-protocol ssh --skip-ssh-key
+<span class="out">! One-time code (7D23-C8D8) copied to clipboard
+Open this URL to continue in your web browser: https://github.com/login/device</span>
+<span class="cmt"># 浏览器打开上面地址、粘贴代码、点 Authorize</span>
+<span class="out">✓ Authentication complete.
+✓ Logged in as xunhuanli0224</span></code></pre>
+        <p>然后一条命令完成建仓、设远端、推送：</p>
+<pre><code><span class="pr">$</span> gh repo create ezviz-monitor --public --source=. --remote=origin --push
+<span class="out">https://github.com/xunhuanli0224/ezviz-monitor
+To github.com:xunhuanli0224/ezviz-monitor.git
+ * [new branch]      HEAD -&gt; main
+branch 'main' set up to track 'origin/main'.</span></code></pre>
+        <table>
+          <thead><tr><th>参数</th><th>作用</th></tr></thead>
+          <tbody>
+            <tr><td><code>--source=.</code></td><td>以当前目录的本地仓库为源，自动读取提交历史</td></tr>
+            <tr><td><code>--remote=origin</code></td><td>顺手把远端命名为 origin，省掉 <code>git remote add</code></td></tr>
+            <tr><td><code>--push</code></td><td>建完立即推送，省掉 <code>git push -u</code></td></tr>
+            <tr><td><code>--public</code></td><td>公开；反之 <code>--private</code></td></tr>
+          </tbody>
+        </table>
+        <div class="note">
+          <b>关于设备码授权</b>：<code>gh auth login --web</code> 常被认为必须有交互终端。
+          实测把标准输入重定向到 <code>/dev/null</code>、后台运行时它依然工作——一次性代码会写进输出，gh 自己轮询等待你在浏览器确认。
+          全程不需要手工输入任何东西，凭证由系统 keyring 保管（本次 token 权限：<code>gist</code>、<code>read:org</code>、<code>repo</code>）。
+        </div>
+      </li>
+
+      <li>
+        <div class="t">推送后验证</div>
+        <div class="why">不要相信「推送成功」的提示，要看远端到底有什么</div>
+<pre><code><span class="cmt"># 列远端文件清单</span>
+<span class="pr">$</span> gh api repos/xunhuanli0224/ezviz-monitor/git/trees/main?recursive=1 \
+    --jq '.tree[] | "\(.size // 0)\t\(.path)"'
+
+<span class="cmt"># 逐个确认敏感文件不存在（返回 404 才算安全）</span>
+<span class="pr">$</span> for f in config.json dist_exe/EzvizWall.exe reports; do
+    gh api "repos/xunhuanli0224/ezviz-monitor/contents/$f" &gt;/dev/null 2&gt;&amp;1 \
+      &amp;&amp; echo "$f 存在！" || echo "$f 未推送 OK"
+  done
+<span class="out">config.json          未推送 OK
+dist_exe/EzvizWall.exe 未推送 OK
+reports              未推送 OK</span>
+
+<span class="pr">$</span> git status --porcelain | wc -l
+<span class="out">0                      ← 工作区干净，无遗漏</span></code></pre>
+      </li>
+    </ol>
+  </section>
+
+  <section class="card">
+    <h2><span class="idx">3</span>三种建仓方式怎么选</h2>
+    <p class="lead">它们的区别只在「谁去调 GitHub 的创建接口」，推送环节都是同一条路。</p>
+
+    <table>
+      <thead>
+        <tr><th>方式</th><th>需要什么</th><th>命令 / 操作</th><th>适用场景</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>gh CLI</b><span class="pill">本次采用</span></td>
+          <td>安装 gh + 一次浏览器授权</td>
+          <td><code>gh repo create 名字 --public --source=. --remote=origin --push</code></td>
+          <td>本机开发，后续还要频繁开 issue / PR；一条命令到底</td>
+        </tr>
+        <tr>
+          <td><b>网页建空仓 + SSH</b></td>
+          <td>什么都不用装</td>
+          <td>网页 New repository（<b>不要勾</b> README / .gitignore）→<br>
+              <code>git remote add origin git@github.com:用户名/仓库名.git</code><br>
+              <code>git push -u origin main</code></td>
+          <td>不想装工具，或给别人演示；零密钥外泄</td>
+        </tr>
+        <tr>
+          <td><b>PAT + REST API</b></td>
+          <td>Personal Access Token</td>
+          <td><code>curl -H "Authorization: Bearer $TOKEN" \<br>
+              -d '{"name":"仓库名","private":false}' \<br>
+              https://api.github.com/user/repos</code></td>
+          <td>脚本化 / CI 里建仓；token 要妥善保管，用完即删</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="warn">
+      <b>网页建仓时最容易出的错</b>：勾了「Add a README file」或「Add .gitignore」。
+      这会在远端产生一个提交，你本地又有独立历史，推送时被拒：
+      <code>! [rejected] main -&gt; main (fetch first)</code>。
+      补救是 <code>git pull --rebase origin main</code> 后再推，或者干脆建空仓。
+    </div>
+  </section>
+
+  <section class="card">
+    <h2><span class="idx">4</span>四个值得记住的判断</h2>
+
+    <h3>① SSH 通了不等于能建仓库</h3>
+    <p>SSH 密钥只解决「推送时的身份认证」，创建仓库是 GitHub 的 REST API，需要 token 或 OAuth。
+    本次 <code>ssh -T</code> 早就通了，却依然卡在建仓这一步，就是这个原因。</p>
+
+    <h3>② 忽略规则要「验证」而不是「写好」</h3>
+    <p><code>.gitignore</code> 对<strong>已跟踪</strong>的文件无效。如果某个文件曾经被 <code>git add</code> 过，
+    之后再加进 <code>.gitignore</code> 也没用，必须 <code>git rm --cached 文件</code> 取消跟踪。
+    所以每次 <code>add</code> 之后都用 <code>git status --short</code> 过一遍清单，比事后补救便宜得多。</p>
+
+    <h3>③ 换行符是跨平台项目的隐形炸弹</h3>
+    <p>Windows 上不影响运行，但克隆到 Linux 后 <code>.sh</code> 会带着 <code>\r</code>，解释器找不到 <code>/bin/bash\r</code>。
+    加 <code>.gitattributes</code> 是根治手段；只在自己的机器上测试永远发现不了这个问题。</p>
+
+    <h3>④ 提交作者身份分三层，优先级从高到低</h3>
+    <table>
+      <thead><tr><th>层级</th><th>配置命令</th><th>影响范围</th></tr></thead>
+      <tbody>
+        <tr><td>仓库级</td><td><code>git config user.name "…"</code></td><td>仅当前仓库（本次采用）</td></tr>
+        <tr><td>全局级</td><td><code>git config --global user.name "…"</code></td><td>当前用户所有仓库</td></tr>
+        <tr><td>系统级</td><td><code>git config --system user.name "…"</code></td><td>整台机器</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="card">
+    <h2><span class="idx">5</span>报错对照表</h2>
+    <table>
+      <thead><tr><th>报错信息</th><th>原因</th><th>处理</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>gh: command not found</code></td>
+          <td>未安装，或装完没重开终端</td>
+          <td>装好后重开终端；或直接用全路径 <code>"C:\Program Files\GitHub CLI\gh.exe"</code></td>
+        </tr>
+        <tr>
+          <td><code>Permission denied (publickey)</code></td>
+          <td>本机公钥没加到 GitHub</td>
+          <td><code>ssh -T git@github.com</code> 确认；不通用 <code>gh auth login</code> 或手动加 <code>~/.ssh/id_ed25519.pub</code></td>
+        </tr>
+        <tr>
+          <td><code>! [rejected] main -&gt; main (fetch first)</code></td>
+          <td>远端已有提交（网页建仓勾了 README）</td>
+          <td><code>git pull --rebase origin main</code> 后重新 push</td>
+        </tr>
+        <tr>
+          <td><code>fatal: remote origin already exists</code></td>
+          <td>重复添加远端</td>
+          <td><code>git remote set-url origin 新地址</code></td>
+        </tr>
+        <tr>
+          <td><code>src refspec main does not match any</code></td>
+          <td>还没有任何提交就 push</td>
+          <td>先 <code>git add -A &amp;&amp; git commit -m "init"</code></td>
+        </tr>
+        <tr>
+          <td><code>Support for password authentication was removed</code></td>
+          <td>用 HTTPS 加账号密码</td>
+          <td>改走 SSH，或用 PAT 当密码</td>
+        </tr>
+        <tr>
+          <td><code>bad interpreter: /bin/bash^M</code></td>
+          <td>仓库里 <code>.sh</code> 被存成 CRLF</td>
+          <td>加 <code>.gitattributes</code>（<code>*.sh eol=lf</code>）+ <code>git add --renormalize .</code></td>
+        </tr>
+        <tr>
+          <td><code>HTTP 401: Bad credentials</code></td>
+          <td>gh 的 token 失效或被撤销</td>
+          <td><code>gh auth login</code> 重新授权，<code>gh auth status</code> 查状态</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="card">
+    <h2><span class="idx">6</span>已经推错了怎么补救</h2>
+
+    <div class="bad">
+      <b>最需要警惕的情形</b>：密钥 / 密码 / Token 被推送上去。
+      <strong>删除文件再提交一次是不够的</strong>——它仍然留在历史提交里，任何人克隆都能翻出来。
+    </div>
+
+    <table>
+      <thead><tr><th>情形</th><th>补救方式</th><th>是否彻底</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>提交了但还没 push</td>
+          <td><code>git reset --soft HEAD~1</code>（保留改动）或 <code>git reset --hard HEAD~1</code>（丢弃改动）</td>
+          <td>是</td>
+        </tr>
+        <tr>
+          <td>已 push，文件不该进仓库但无敏感信息</td>
+          <td><code>git rm --cached 文件</code> → commit → push</td>
+          <td>否，历史里仍在</td>
+        </tr>
+        <tr>
+          <td>已 push，且含密钥</td>
+          <td>① <b>立刻作废该密钥 / Token</b>（这一步最重要）<br>② 再用 <code>git filter-repo</code> 或 BFG 改写历史并强推<br>③ 通知协作者重新克隆</td>
+          <td>是，但必须换密钥</td>
+        </tr>
+        <tr>
+          <td>仓库误建为公开</td>
+          <td><code>gh repo edit --visibility private --accept-visibility-change-consequences</code></td>
+          <td>是</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="ok">
+      <b>顺序原则</b>：先止血（作废凭证），再清理历史。反过来做，凭证在你清理的这几分钟里就是公开可用的。
+    </div>
+  </section>
+
+  <section class="card">
+    <h2><span class="idx">7</span>之后的日常操作</h2>
+    <p class="lead">仓库建成后就不需要 gh 了，日常只有三行命令。</p>
+
+<pre><code><span class="pr">$</span> git status                              <span class="cmt"># 看改了什么，先看再动</span>
+<span class="pr">$</span> git add -A &amp;&amp; git commit -m "fix: 说明修了什么"
+<span class="pr">$</span> git push                              <span class="cmt"># 凭证由 gh 存在 keyring，不必再登录</span></code></pre>
+
+    <table>
+      <thead><tr><th>想做的事</th><th>命令</th></tr></thead>
+      <tbody>
+        <tr><td>改仓库可见性</td><td><code>gh repo edit --visibility private</code></td></tr>
+        <tr><td>加标签</td><td><code>gh repo edit --add-topic 标签名</code></td></tr>
+        <tr><td>看远端状态</td><td><code>gh repo view --json name,visibility,url</code></td></tr>
+        <tr><td>查看登录账号</td><td><code>gh auth status</code></td></tr>
+        <tr><td>换账号</td><td><code>gh auth logout</code> 后重新 <code>gh auth login</code></td></tr>
+        <tr><td>删除仓库</td><td><code>gh repo delete 用户名/仓库名 --yes</code>（不可恢复）</td></tr>
+      </tbody>
+    </table>
+
+    <div class="note">
+      <b>关于密钥存放</b>：<code>config.json</code> 里是明文 AppSecret，已被 <code>.gitignore</code> 排除。
+      但只要你手工把目录拷给别人，它就是跟着走的——分发包请用 <code>portable.py</code>（默认剔除凭证）。
+    </div>
+  </section>
+
+  <footer>本文档记录的是 2026-11-18 实际执行过程，命令与输出均来自真实终端记录。</footer>
+</div>
+</body>
+</html>
